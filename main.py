@@ -15,35 +15,17 @@ df['Value_SGD'] = df['Quantity'] * df['Split_Adjusted_Close'] * df['USDSGD']
 # Group by date to get daily total portfolio value
 daily_portfolio = df.groupby('Date')[['Value_USD', 'Value_INR', 'Value_SGD']].sum().reset_index()
 
-# --- Compute XIRR for each holding ---
-xirr_results = {}
-for symbol in df['Symbol'].dropna().unique():
-    holding = df[df['Symbol'] == symbol]
-    cashflows = holding['Proceeds'].values
-    dates = pd.to_datetime(holding['Date/Time'], errors='coerce').values
-    if len(cashflows) >= 2:
-        try:
-            xirr_val = pyxirr.xirr(dates, cashflows)
-            xirr_results[symbol] = xirr_val
-        except Exception as e:
-            xirr_results[symbol] = f"Error: {e}"
-    else:
-        xirr_results[symbol] = "Not enough data"
+# --- Load XIRR results from CSV ---
+xirr_df = pd.read_csv('xirr_results.csv')
 
 # --- Streamlit UI with Tabs ---
-tab1, tab2, tab3 = st.tabs(["Portfolio Dashboard", "Raw Data", "Latest News"])
+tab1, tab2, tab3, tab4 = st.tabs(["Portfolio Dashboard", "Raw Data", "Latest News", "XIRR Values"])
 
 with tab1:
     st.title("Portfolio Dashboard")
 
     st.header("Daily Portfolio Value")
     st.dataframe(daily_portfolio)
-
-    st.header("XIRR for Each Holding")
-    for symbol, xirr_val in xirr_results.items():
-        st.write(f"{symbol}: {xirr_val}")
-
-    # st.line_chart(daily_portfolio.set_index('Date')[['Value_USD', 'Value_INR', 'Value_SGD']])
 
 with tab2:
     st.title("Raw Data: final_dataset.csv")
@@ -71,3 +53,16 @@ with tab3:
                 st.write(f"- [{item['title']}]({item['link']})")
         else:
             st.write("No news found.")
+
+with tab4:
+    st.title("XIRR Values for Each Holding")
+    st.markdown("**Note:** XIRR is calculated as of 2025-07-17 using the portfolio value on that date.")
+    # Convert XIRR to percentage (if not error)
+    xirr_df_display = xirr_df.copy()
+    def to_percent(val):
+        try:
+            return f"{float(val)*100:.2f}%" 
+        except:
+            return val
+    xirr_df_display['XIRR'] = xirr_df_display['XIRR'].apply(to_percent)
+    st.dataframe(xirr_df_display)
