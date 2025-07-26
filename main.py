@@ -27,6 +27,12 @@ with tab1:
     st.header("Daily Portfolio Value")
     st.dataframe(daily_portfolio)
 
+    st.header("Portfolio Value Over Time")
+    st.line_chart(
+        daily_portfolio.set_index('Date')[['Value_USD', 'Value_INR', 'Value_SGD']],
+        use_container_width=True
+    )
+
 with tab2:
     st.title("Raw Data: final_dataset.csv")
     st.dataframe(df)
